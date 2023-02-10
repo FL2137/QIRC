@@ -20,13 +20,13 @@ class QTcpHandler: public QObject{
     Q_OBJECT
 
 public:
-    QTcpHandler(std::shared_ptr<QTcpSocket> sock);
+    QTcpHandler(int socketDescriptor, QAbstractSocket::OpenMode::enum_type openmode);
 
 
 private:
 
+    QTcpSocket *socket = nullptr;
 
-    std::shared_ptr<QTcpSocket> socket;
 
     bool connect(const QString &addr, const int &port);
 
@@ -40,7 +40,7 @@ private:
 public slots:
     void read();
     void send(const QString &message);
-    QTcpSocket *socket;
+
 
 signals:
     void dataReady(const QString &data);

@@ -1,12 +1,16 @@
 #include "QTcpHandler.h"
 #include <QTextStream>
 
-QTcpHandler::QTcpHandler(std::shared_ptr<QTcpSocket> sock){
+QTcpHandler::QTcpHandler(int socketDescriptor, QAbstractSocket::OpenMode::enum_type openmode){
     if(!socket){
-        qDebug()<<"initializing new qtcpsocket";
-        socket = sock;
-        QString addr = "chat.freenode.org";
-        socket->connectToHost(addr,6667);
+        qDebug()<<"initializing new qtcpsocket with sd: "<<socketDescriptor;
+        socket = new QTcpSocket();
+        if(socket->setSocketDescriptor(socketDescriptor,QAbstractSocket::ConnectedState,openmode)){
+            qDebug()<<"SOCKET INHERITED BY CHILD THREAD CORRECTLY";
+        }
+        else{
+            qDebug()<<"ERORR ASSIGNING SOCKET DESCRIPTOR";
+        }
     }
 }
 
@@ -105,6 +109,7 @@ void QTcpHandler::fileLog(const QString &data){
         vector<string> lines = msg_split(data.toStdString());
         QString size = QString::fromStdString(std::to_string(lines.size()));
 
+
         QString towrite =       "||"+ size +"--------------------------------------\n\r";
         for(auto &line : lines){
             QString val = QString::fromStdString(line);
@@ -112,7 +117,8 @@ void QTcpHandler::fileLog(const QString &data){
             towrite+=val;
         }
         towrite+="--------------------------------------\n\r";
-        out << towrite << "\n";
+        if(size!="0")
+            out << towrite << "\n";
 
         file.close();
     }
@@ -121,7 +127,7 @@ void QTcpHandler::fileLog(const QString &data){
 void QTcpHandler::read(){
     const char *tmp = "CAP LS 302\r\nNICK kuli_fuli\r\nUSER kuli_fuli 0 * https://kiwiirc.com/\r\n";
     socket->write(tmp);
-
+    qDebug()<<"READ STARTED IN "<<QThread::currentThreadId();
 
     for(;;){
 
