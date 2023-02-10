@@ -8,7 +8,7 @@
 #include <QFile>
 
 //.h includes
-#include "QTcpHandler.h"
+#include "TcpHandler.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -17,7 +17,7 @@ QT_END_NAMESPACE
 
 
 
-class MainWindow : public QMainWindow, std::enable_shared_from_this<MainWindow>
+class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
@@ -28,13 +28,13 @@ public:
     QString serverName;
 
 private:
-    QTcpHandler *tcpSender;
-    QTcpHandler *tcpReader;
+
+    TcpHandler *ircTcp;
 
     Ui::MainWindow *ui;
-    std::shared_ptr<QTcpSocket> socket;
-    QThread readerThread;
-    QThread senderThread;
+
+
+    QThread tcpThread;
 
 public slots:
     void receivedData(const QString &result);
@@ -43,8 +43,8 @@ private slots:
     void on_pushButton_clicked();
 
 signals:
-    void operateSend(const QString &message);
-    void operateRead();
+    void tcpStart();
+    void sendMessage(const QString &message);
 
 
 

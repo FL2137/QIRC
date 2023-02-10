@@ -7,23 +7,19 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
-    socket = std::make_shared<QTcpSocket>();
 
-    tcpReader = new QTcpHandler(socket);
-    tcpSender = new QTcpHandler(socket);
+    ircTcp = new TcpHandler();
+    ircTcp->moveToThread(&tcpThread);
 
-    tcpReader->moveToThread(&readerThread);
-    tcpSender->moveToThread(&senderThread);
-    connect(&senderThread, &QThread::finished, tcpSender, &QObject::deleteLater);
-    connect(&readerThread, &QThread::finished, tcpReader, &QObject::deleteLater);
-    connect(this,&MainWindow::operateRead, tcpReader, &QTcpHandler::read);
-    connect(this,&MainWindow::operateSend, tcpSender, &QTcpHandler::send);
-    connect(tcpReader,&QTcpHandler::dataReady, this, &MainWindow::receivedData);
-    connect(tcpReader,&QTcpHandler::connectedToServer,this,&MainWindow::confirmedConnected);
 
-    senderThread.start();
-    readerThread.start();
-    emit operateRead();
+    connect(this,&MainWindow::tcpStart,ircTcp,&TcpHandler::startLoop);
+    connect(ircTcp,&TcpHandler::confirmConnected,this,&MainWindow::confirmedConnected);
+    connect(this,&MainWindow::sendMessage,ircTcp,&TcpHandler::asyncWrite,Qt::DirectConnection);
+    connect(ircTcp,&TcpHandler::updateData,this,&MainWindow::receivedData);
+
+    tcpThread.start();
+
+    emit tcpStart();
 
     ui->setupUi(this);
 }
@@ -31,30 +27,42 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
 
-    senderThread.quit();
-    senderThread.wait();
+    tcpThread.requestInterruption();
+    tcpThread.quit();
+    tcpThread.wait();
 
-
-    readerThread.requestInterruption();
-    readerThread.quit();
-    readerThread.wait();
-
-
+    delete ircTcp;
     delete ui;
 }
 
 
+
 void MainWindow::receivedData(const QString &data){
-    if(data != "")
-        ui->textBrowser->setText(data);
+    qDebug()<<data;
+    QString code=data.left(2);
+
+    if(code == "01"){ //write proposed channels to textArea
+        QString tmpTxt = ui->textBrowser->toPlainText();
+        tmpTxt+=data.mid(2,data.size()-2);
+        ui->textBrowser->setPlainText(tmpTxt);
+    }
+    else if(code == "02"){ //handle nicknames
+        const QStringList nicknames = data.split(' ');
+        for(const auto &nick : nicknames){
+            ui->listWidget->addItem(nick);
+        }
+    }
+
+
+
 }
 void MainWindow::confirmedConnected(){
-    qDebug()<<"CONNECTION CONFIRMED";
+    ui->serverLabel->setText("chat.freenode.net");
 }
 
 void MainWindow::on_pushButton_clicked()
 {
     QString txt = ui->typeInput->toPlainText();
-    emit operateSend(txt);
-}
+    emit sendMessage(txt);
 
+}
