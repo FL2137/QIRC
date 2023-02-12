@@ -53,9 +53,8 @@ void MainWindow::receivedData(const QString &data){
         }
     }
 
-
-
 }
+
 void MainWindow::confirmedConnected(){
     ui->serverLabel->setText("chat.freenode.net");
 }

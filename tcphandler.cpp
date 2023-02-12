@@ -168,7 +168,10 @@ void TcpHandler::parse(QString &data){
             auto str = obj.section(':',2,2);
             emit updateData("02"+str);
         }
-
+        else if(obj.contains("QUIT")){
+            QString who = obj.section(':',0,0);
+            qDebug()<<who;
+        }
 
         //default print
         if(obj !="")
